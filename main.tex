@@ -2,8 +2,9 @@
 \usetheme{default}
 \useoutertheme{miniframes}
 \useinnertheme{circles}
-
+\usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{pdfpages}
 \usepackage{pgf}  
 \logo{\pgfputat{\pgfxy(-11, 0)}{\pgfbox[center,base]{\includegraphics[width=2.5cm]{ANUlogo.png}}}} 
 
@@ -39,14 +40,10 @@
         \item Construct protein model (e.g. \textit{Mj}TyrRS, pCNFRS) based off crystal structures. Place uAA in binding site, specify mutation sites and kinetic constraints.
         \item Generate mutant candidates using \texttt{Rosetta} protocols. Calculate various score factors for mutants.
         \begin{center}Mutant pose $\to$ $\mathrm{scores}(E_1, E_2, E_3, ...)$\end{center}
-        \item Select candidates for \textit{in vitro} experimentation by applying thresholds or ranking w.r.t several score factors, e.g. $\underbrace{\text{total score} > E_0}_{\text{a rectangular constraint!}}$
+        \item Select candidates for \textit{in vitro} experimentation by applying thresholds or ranking w.r.t several score factors (e.g. total score, ligand binding score), e.g. $\underbrace{\text{total score} > E_0}_{\text{a rectangular constraint!}}$
     \end{enumerate}
 \end{frame}
 
-\begin{frame}
-    This has significant limitations: boundary between 'good' and 'bad' may be nonlinear! \\
-    \includegraphics[width=\linewidth]{diagram1.png}
-\end{frame}
 \begin{frame}
     This has significant limitations: boundary between 'good' and 'bad' may be nonlinear! \\
     \includegraphics[width=\linewidth]{diagram2.png}
@@ -76,38 +73,71 @@
 
 \section{Methods}
 \begin{frame}{Training set}
-    Training set comprised of uAA's reported in literature be incorporated by \textit{Mj}TyrRS or \textit{p}CNFRS.
+    Training set comprised of uAAs reported in a literature review to be incorporated by \textit{p}CNFRS mutant.
+    
+    Dumas et al., \textit{Chem. Sci.}, 2015, 6, 50 $\rightarrow$ 60 mutant-uAA pairs.
+    
+    uAA ligands were \textbf{chemically diverse.}
+    
+    \includegraphics[scale = 0.4]{uAA3.png}
+    \includegraphics[scale = 0.4]{uAA5.png}
+    \includegraphics[scale = 0.4]{uAA8.png}
+    \includegraphics[scale = 0.4]{uAA12.png}
+    \includegraphics[scale = 0.4]{uAA47.png}
+\end{frame}
+
+\begin{frame}{Methods}
     \begin{itemize}
-        \item Dumas et al., \textit{Chem. Sci.}, 2015, 6, 50 $\rightarrow$ 60 mutant-uAA pairs
-        \item From previous work in Huber group...
-        \item Nitroxide-incorporating \textit{p}CNFRS mutants $\rightarrow$ 28 mutants
-        \item O-tert-butyl tyrosine incorporating \textit{p}CNFRS mutants $\rightarrow$ 14 mutants
+        \item Molecular models of uAA ligands constructed, 200 conformers generated using \texttt{balloon}
+        \item Mutations modelled onto sequence of \textit{p}CNFRS (PDBID \texttt{3QE4})
+        \item uAAs placed in aaRS binding cavity of \textit{p}CNFRS crystal structure using \texttt{pymol}
+        \item Catalytic constraints manually specified for each mutant-uAA pair
+        \item 500 candidate protein poses generated for \textbf{each} mutant-uAA pair using Rosetta \texttt{EnzymeDesign}
+    \end{itemize}
+    \begin{center}$\Rightarrow$ $(+)$ dataset!\end{center}
+\end{frame}
+
+\begin{frame}{Methods}
+    For binary classification, using a \textbf{balanced} training dataset is important to avoid bias. Previous protocol repeated to produce the following datasets:
+    \begin{itemize}
+        \item Mutants against uAAs $(+)$
+        \item Mutants against Tyr $(-)$
+    \end{itemize}
+    \begin{itemize}
+        \item Wt \textit{Mj}TyrRS against uAAs $(-)$
+        \item Wt \textit{Mj}TyrRS against Tyr $(+)$
+    \end{itemize}
+    
+    Smaller datasets were randomly oversampled so that all four datasets were of equal size.
+\end{frame}
+
+\begin{frame}{Implementation}
+    Machine learning algorithms were implemented in \texttt{python} using the \texttt{sklearn} library.
+    \begin{itemize}
+        \item $k$-fold cross-validation is standard practice to measure classifier accuracy. Here $k = 5$
+        \item Points were grouped with respect to mutant-uAA pair to prevent 'cheating'
+        \item CV score reported as arithmetic mean of individual scores
+        \item Parameter optimisation carried out using \textbf{grid search}
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Protocol}
-    For consistency, all mutants were modelled on \textit{p}CNFRS (PDBID \texttt{3QE4}).
+\begin{frame}
+    Optimal parameters resulted in:
     \begin{itemize}
-        \item For all mutants, 200 conformers of uAA and TYR generated using \texttt{balloon}, \texttt{Rosetta} \texttt{.params} file generated using \texttt{molfile\_to\_params.py}
-        \item uAA and TYR positioned in binding pocket using \texttt{pymol}
-        \item Mutated residues were specified, inputs passed to \texttt{EnzymeDesign} application. 500 decoys generated \textit{each} for mutant-uAA and mutant-TYR $\rightarrow$ score data!
+        \item Logistic regression: \texttt{C = 1e3}
+        \item ANN: hidden layer: 2$\times$24 neurons,
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Acknowledgements}
+\begin{itemize}
+    \item \textbf{Prof. Thomas Huber}
+    \item Haocheng Qianzhu
+    \item Abeera Saeed
+    \item Youssef Latash
 \end{itemize}
-\end{frame}
 
-\begin{frame}{Input dataset is chemically diverse}
-\begin{center}
-    \includegraphics[scale = 0.5]{uAA1.png}
-    \includegraphics[scale = 0.5]{uAA2.png}
-    \includegraphics[scale = 0.5]{uAA3.png}
-    \\
-    \includegraphics[scale = 0.5]{uAA4.png}
-    \includegraphics[scale = 0.5]{uAA5.png}
-    \includegraphics[scale = 0.5]{uAA6.png}
-\end{center}
-\end{frame}
 
-\begin{frame}{Training and testing}
-    
 \end{frame}
 \end{document}
 
